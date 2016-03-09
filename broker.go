@@ -205,6 +205,7 @@ func (c *client) read() {
 				return
 			}
 			if string(msg.Body) == c.broker.cfg.AuthenticationKey {
+				// TODO: this is theoretically vulnerable to replay attacks, fix it
 				glog.Info("Authentication successful")
 				authenticated = true
 			} else {

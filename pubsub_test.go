@@ -7,10 +7,13 @@ import (
 
 	"github.com/getlantern/idletiming"
 	"github.com/getlantern/testify/assert"
+	"github.com/golang/glog"
 )
 
 func TestRoundTrip(t *testing.T) {
 	authenticationKey := "authentication key"
+	topic := []byte("The Topic")
+	body := []byte("The Body")
 
 	l, err := net.Listen("tcp", "localhost:0")
 	if !assert.NoError(t, err, "Unable to listen") {
@@ -28,112 +31,53 @@ func TestRoundTrip(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return idletiming.Conn(conn, 40*time.Millisecond, func() {
+		return idletiming.Conn(conn, 40*time.Hour, func() {
 			conn.Close()
 		}), nil
 	}
 
-	timeoutClient, err := Connect(&ClientConfig{
-		Dial:            dial,
-		KeepalivePeriod: 50 * time.Millisecond,
+	clientA := Connect(&ClientConfig{
+		Dial:              dial,
+		BackoffBase:       10 * time.Millisecond,
+		KeepalivePeriod:   25 * time.Millisecond,
+		AuthenticationKey: authenticationKey,
 	})
-	if !assert.NoError(t, err, "Unable to connect timeoutClient") {
-		return
-	}
+	glog.Info("Connected clientA")
 
-	// Sleep to hit idle condition (should not trigger keepalive)
-	time.Sleep(50 * time.Millisecond)
-	err = timeoutClient.Subscribe([]byte("a"))
-	assert.Error(t, err, "Subscribe should have failed due to connection timeout")
-
-	clientA, err := Connect(&ClientConfig{
+	clientB := Connect(&ClientConfig{
 		Dial:            dial,
+		BackoffBase:     10 * time.Millisecond,
 		KeepalivePeriod: 25 * time.Millisecond,
+		InitialTopics:   [][]byte{topic},
 	})
-	if !assert.NoError(t, err, "Unable to connect clientA") {
-		return
-	}
-
-	clientB, err := Connect(&ClientConfig{
-		Dial:            dial,
-		KeepalivePeriod: 25 * time.Millisecond,
-	})
-	if !assert.NoError(t, err, "Unable to connect clientB") {
-		return
-	}
+	glog.Info("Connected clientB")
 
 	// Sleep to hit idle condition (should trigger keepalive)
 	time.Sleep(50 * time.Millisecond)
 
-	topic := []byte("The Topic")
-	body := []byte("The Body")
+	// Subscribe to topic
+	clientA.Subscribe(topic).Send()
 
-	err = clientB.Subscribe(topic)
-	if !assert.NoError(t, err, "clientB unable to subscribe") {
-		return
-	}
+	// Publish with authenticated client
+	clientA.Publish(topic, body).Send()
 
-	// Attempt to publish before authenticating
-	err = clientA.Publish(topic, []byte("Bad Body"))
-	if !assert.NoError(t, err, "clientA unable to publish unauthenticated") {
-		return
-	}
-
-	// Authenticate first time, should fail because our previous publish call
-	// caused broker to disconnect
-	err = clientA.Authenticate(authenticationKey)
-	if !assert.NoError(t, err, "clientA unable to authenticate") {
-		return
-	}
-
-	// Reconnect
-	clientA, err = Connect(&ClientConfig{
-		Dial:              dial,
-		KeepalivePeriod:   25 * time.Millisecond,
-		InitialTopics:     [][]byte{topic},
-		AuthenticationKey: authenticationKey,
-	})
-	if !assert.NoError(t, err, "Unable to reconnect clientA") {
-		return
-	}
-
-	err = clientA.Publish(topic, body)
-	if !assert.NoError(t, err, "clientA unable to publish authenticated") {
-		return
-	}
-
-	msg, err := clientA.Read()
-	if !assert.NoError(t, err, "clientA unable to read") {
-		return
-	}
+	msg := clientA.Read()
 	assert.Equal(t, topic, msg.Topic, "clientA received wrong topic")
 	assert.Equal(t, body, msg.Body, "clientA received wrong body")
 
-	msg, err = clientB.Read()
-	if !assert.NoError(t, err, "clientB unable to read") {
-		return
-	}
+	msg = clientB.Read()
 	assert.Equal(t, topic, msg.Topic, "clientB received wrong topic")
 	assert.Equal(t, body, msg.Body, "clientB received wrong body")
 
-	err = clientA.Unsubscribe(topic)
-	if !assert.NoError(t, err, "clientA unable to unsubscribe") {
-		return
-	}
+	clientA.Unsubscribe(topic).Send()
 
 	body2 := []byte("Body the sequel")
-	err = clientA.Publish(topic, body2)
-	if !assert.NoError(t, err, "clientA unable to publish again") {
-		return
-	}
+	clientA.Publish(topic, body2).Send()
 
-	msg, err = clientA.Read()
-	assert.Error(t, err, "clientA should not have been able to read again")
+	msg, ok := clientA.ReadTimeout(75 * time.Millisecond)
+	assert.False(t, ok, "clientA should not have been able to read again")
 
-	msg, err = clientB.Read()
-	if !assert.NoError(t, err, "clientB unable to read again") {
-		return
-	}
+	msg = clientB.Read()
 	assert.Equal(t, topic, msg.Topic, "clientB received wrong topic")
 	assert.Equal(t, body2, msg.Body, "clientB received wrong body")
 }
