@@ -32,7 +32,7 @@ works as follows:
   retried.
 
 - If the broker hasn't read from or written to a client within its idle timeout,
-  the broker disconnects. This keeps the broker from needlessly keeping open a
+  the broker disconnects. This prevents the broker from needlessly maintaining a
   bunch of idle connections.
 
 - Clients that would otherwise be idle send periodic keep-alive messages to the
@@ -42,8 +42,8 @@ works as follows:
 - The protocol does not account for the broker returning any errors to the
   client. If the broker encounters an abnormal condition, it will disconnect.
 
-- Messages are framed and serialized using MessagePack. MessagePack was chosen
-  because it is schema-less but still achieves a small serialized size and
-  reasonably fast performance. See
-  [here](https://github.com/eishay/jvm-serializers/wiki) for some useful
-  comparisons.
+- Messages are framed and serialized using
+  [MessagePack](http://msgpack.org/index.html). MessagePack was chosen because
+  it is schema-less but still achieves a small serialized size and reasonably
+  fast performance. See [here](https://github.com/eishay/jvm-serializers/wiki)
+  for some useful comparisons.

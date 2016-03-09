@@ -9,18 +9,29 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
-type MessageType uint8
+// MessageType identifies the type of a Message
+type MessageType int8
 
 const (
 	// Message Types
-	KeepAlive    = 0
+
+	// KeepAlive is a MessageType for keeping alive connections
+	KeepAlive = 0
+
+	// Authenticate is a MessageType for authenticating clients
 	Authenticate = 1
-	Subscribe    = 2
-	Unsubscribe  = 3
-	Publish      = 4
+
+	// Subscribe is a MessageType for subscribing to topics
+	Subscribe = 2
+
+	// Unsubscribe is a MessageType for unsubscribing from topics
+	Unsubscribe = 3
+
+	// Publish is a MessageType for publishing a message to a topic
+	Publish = 4
 )
 
-// A Message
+// Message is a message
 type Message struct {
 	// Type of message (serialized as field "t")
 	Type MessageType `msgpack:"t,omitempty"`
@@ -30,7 +41,8 @@ type Message struct {
 	Body []byte `msgpack:"b,omitempty"`
 }
 
-type Config struct {
+// BrokerConfig contains configuration for a Broker.
+type BrokerConfig struct {
 	// AuthenticationKey: the secret key that clients must specify in order to
 	// be allowed to publish
 	AuthenticationKey string
@@ -51,9 +63,11 @@ type Config struct {
 	ClientBufferDepth int
 }
 
+// A Broker handles communication between clients by allowing them to subscribe
+// to and publish to topics.
 type Broker struct {
-	cfg             *Config
-	highestClientId int64
+	cfg             *BrokerConfig
+	highestClientID int64
 	clients         map[int64]*client
 	subscriptions   map[string]map[int64]*client
 	subscribe       chan *subscription
@@ -77,7 +91,8 @@ type subscription struct {
 	client *client
 }
 
-func NewBroker(cfg *Config) *Broker {
+// NewBroker creates a Broker from the given BrokerConfig.
+func NewBroker(cfg *BrokerConfig) *Broker {
 	// Apply sensible defaults
 	if cfg.IdleTimeout == 0 {
 		cfg.IdleTimeout = 70 * time.Second
@@ -110,6 +125,7 @@ func NewBroker(cfg *Config) *Broker {
 	}
 }
 
+// Serve starts serving clients connecting via the given net.Listener.
 func (b *Broker) Serve(l net.Listener) {
 	go b.handleMessages()
 	go b.accept(l)
@@ -162,10 +178,10 @@ func (b *Broker) clientsFor(topic string) map[int64]*client {
 }
 
 func (b *Broker) newClient(conn net.Conn) *client {
-	b.highestClientId += 1
+	b.highestClientID++
 	client := &client{
 		broker:    b,
-		id:        b.highestClientId,
+		id:        b.highestClientID,
 		conn:      conn,
 		dec:       msgpack.NewDecoder(conn),
 		enc:       msgpack.NewEncoder(conn),

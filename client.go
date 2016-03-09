@@ -10,16 +10,7 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
-type Client struct {
-	cfg            *ClientConfig
-	keepaliveTimer *time.Timer
-	out            chan *Publishable
-	in             chan *Message
-	connect        chan interface{}
-	conn           net.Conn
-	enc            *msgpack.Encoder
-}
-
+// ClientConfig configures a Client.
 type ClientConfig struct {
 	// Dial: function for opening a connection to the broker
 	Dial func() (net.Conn, error)
@@ -46,7 +37,20 @@ type ClientConfig struct {
 	InitialTopics [][]byte
 }
 
-type Publishable struct {
+// Client is a client that is able to communicate with a Broker over the
+// network.
+type Client struct {
+	cfg            *ClientConfig
+	keepaliveTimer *time.Timer
+	out            chan *Sendable
+	in             chan *Message
+	connect        chan interface{}
+	conn           net.Conn
+	enc            *msgpack.Encoder
+}
+
+// Sendable represents a Message that can be published to a specific client.
+type Sendable struct {
 	c   *Client
 	msg *Message
 }
@@ -69,7 +73,7 @@ func Connect(cfg *ClientConfig) *Client {
 	client := &Client{
 		cfg:            cfg,
 		keepaliveTimer: time.NewTimer(cfg.KeepalivePeriod),
-		out:            make(chan *Publishable, 0),
+		out:            make(chan *Sendable, 0),
 		in:             make(chan *Message, 0),
 		connect:        make(chan interface{}, 1),
 	}
@@ -78,11 +82,14 @@ func Connect(cfg *ClientConfig) *Client {
 	return client
 }
 
+// Read reads the next Message from the Broker.
 func (c *Client) Read() *Message {
 	return <-c.in
 }
 
-func (c *Client) ReadTimeout(timeout time.Duration) (*Message, bool) {
+// ReadTimeout reads the next message from the Broker or returns nil, false if
+// no message is read within the given timeout.
+func (c *Client) ReadTimeout(timeout time.Duration) (msg *Message, ok bool) {
 	select {
 	case msg := <-c.in:
 		return msg, true
@@ -91,36 +98,40 @@ func (c *Client) ReadTimeout(timeout time.Duration) (*Message, bool) {
 	}
 }
 
-func (c *Client) Subscribe(topic []byte) *Publishable {
-	return &Publishable{
+// Subscribe subscribes this client to the given topic.
+func (c *Client) Subscribe(topic []byte) *Sendable {
+	return &Sendable{
 		c:   c,
 		msg: &Message{Type: Subscribe, Topic: topic},
 	}
 }
 
-func (c *Client) Unsubscribe(topic []byte) *Publishable {
-	return &Publishable{
+// Unsubscribe unsubscribes this client from the given topic.
+func (c *Client) Unsubscribe(topic []byte) *Sendable {
+	return &Sendable{
 		c:   c,
 		msg: &Message{Type: Unsubscribe, Topic: topic},
 	}
 }
 
-func (c *Client) Publish(topic, body []byte) *Publishable {
-	return &Publishable{
+// Publish publishes a message with the given body to the given topic.
+func (c *Client) Publish(topic, body []byte) *Sendable {
+	return &Sendable{
 		c:   c,
 		msg: &Message{Type: Publish, Topic: topic, Body: body},
 	}
 }
 
-func (p *Publishable) Send() {
-	p.c.out <- p
+// Send sends the Sendable eventually (queues behind other Sends and ops).
+func (s *Sendable) Send() {
+	s.c.out <- s
 }
 
-func (p *Publishable) sendImmediate() error {
-	p.c.resetKeepaliveTimer()
-	err := p.c.enc.Encode(p.msg)
+func (s *Sendable) sendImmediate() error {
+	s.c.resetKeepaliveTimer()
+	err := s.c.enc.Encode(s.msg)
 	if err == nil {
-		glog.Infof("Sent message %v", p.msg)
+		glog.Infof("Sent message %v", s.msg)
 	}
 	return err
 }
@@ -129,9 +140,9 @@ func (c *Client) process() {
 	c.forceConnect()
 	for {
 		select {
-		case p := <-c.out:
+		case s := <-c.out:
 			glog.Info("Sending message")
-			c.doWithConnection(p.sendImmediate)
+			c.doWithConnection(s.sendImmediate)
 		case <-c.keepaliveTimer.C:
 			glog.Info("Sending KeepAlive")
 			c.doWithConnection(c.keepAlive().sendImmediate)
@@ -239,15 +250,15 @@ func (c *Client) forceConnect() {
 	}
 }
 
-func (c *Client) authenticate(authenticationKey string) *Publishable {
-	return &Publishable{
+func (c *Client) authenticate(authenticationKey string) *Sendable {
+	return &Sendable{
 		c:   c,
 		msg: &Message{Type: Authenticate, Body: []byte(authenticationKey)},
 	}
 }
 
-func (c *Client) keepAlive() *Publishable {
-	return &Publishable{
+func (c *Client) keepAlive() *Sendable {
+	return &Sendable{
 		c:   c,
 		msg: &Message{Type: KeepAlive},
 	}

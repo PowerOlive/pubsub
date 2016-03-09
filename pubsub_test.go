@@ -20,7 +20,7 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 	addr := l.Addr().String()
-	broker := NewBroker(&Config{
+	broker := NewBroker(&BrokerConfig{
 		AuthenticationKey: authenticationKey,
 		IdleTimeout:       50 * time.Millisecond,
 	})
