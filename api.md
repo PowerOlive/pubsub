@@ -7,7 +7,7 @@ pubsub is an API for publishing messages to the pubsub message broker.
 
 ## Group Message
 
-## Messages [/messages]
+## Messages [messages]
 
 ### Publish a message [POST]
 
@@ -30,11 +30,11 @@ This publishes a message to a topic. In pubsub, topics and bodies are just byte 
                 Body: "SGVyZSBpcyBhIHNhbXBsZSBib2R5"
             }
 
-+ Response 201
-+ Response 400
++ Response 201 (text/plain)
++ Response 400 (text/plain)
 
             Message will indicate what specifically was wrong
 
-+ Response 401
-+ Response 405
-+ Response 415
++ Response 401 (text/plain)
++ Response 405 (text/plain)
++ Response 415 (text/plain)
