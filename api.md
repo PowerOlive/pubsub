@@ -16,7 +16,14 @@ This publishes a message to a topic. In pubsub, topics and bodies are just byte 
 + topic (string) - The base64 encoded topic to which to publish
 + body (string) - The base64 encoded body of the message to publish
 
-+ Request (application/json)
++ Request
+
+  + Headers
+
+          Content-Type: application/json
+          X-Authentication-Key: <authentication key here>
+
+  + Body
 
         {
             Topic: "TXkgVG9waWM=",
@@ -24,3 +31,10 @@ This publishes a message to a topic. In pubsub, topics and bodies are just byte 
         }
 
 + Response 201
++ Response 400
+
+        Message will indicate what specifically was wrong
+
++ Response 401
++ Response 405
++ Response 415
