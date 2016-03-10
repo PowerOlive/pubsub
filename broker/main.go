@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	addr     = flag.String("addr", ":1443", "The address at which to listen for connections")
+	addr     = flag.String("addr", ":14443", "The address at which to listen for connections")
 	httpAddr = flag.String("httpaddr", ":443", "The address at which to listen for HTTP connections")
 	authkey  = flag.String("authkey", "", "The authentication key to use for authenticating publishers")
 )
@@ -30,11 +30,13 @@ func main() {
 	if err != nil {
 		glog.Fatalf("Unable to listen: %v", err)
 	}
+	fmt.Fprintf(os.Stdout, "Listening for connections at %v\n", l.Addr())
 
 	hl, err := net.Listen("tcp", *httpAddr)
 	if err != nil {
 		glog.Fatalf("Unable to listen HTTP: %v", err)
 	}
+	fmt.Fprintf(os.Stdout, "Listening for HTTP connections at %v\n", hl.Addr())
 
 	broker := pubsub.NewBroker(&pubsub.BrokerConfig{
 		AuthenticationKey: *authkey,
@@ -47,6 +49,5 @@ func main() {
 		}
 	}()
 
-	fmt.Fprintf(os.Stdout, "Listening for connections at %v\n", l.Addr())
 	broker.Serve(l)
 }

@@ -1,6 +1,6 @@
-// loadclient generates load by sending messages to a broker. It sends to
-// random topics corresponding to the topics subscribed by perfclient
-// (perfclient0, perfclient1, etc.).
+// httpclient generates load by sending messages to a broker using the HTTP
+// protocol. It sends to random topics corresponding to the topics subscribed by
+// perfclient (perfclient0, perfclient1, etc.).
 package main
 
 import (
@@ -30,7 +30,7 @@ var (
 	authkey     = flag.String("authkey", "", "The authentication key")
 	numclients  = flag.Int("numclients", 15000, "The number of concurrent clients that are running")
 	targettps   = flag.Int("targettps", 100000, "The target transactions per second")
-	parallelism = flag.Int("parallel", 100, "The number of parallel clients to run")
+	parallelism = flag.Int("parallel", 1000, "The number of parallel clients to run")
 
 	body = []byte("this is the message body")
 )
@@ -70,12 +70,13 @@ func launchClient(targettps int, sent chan int) {
 		req.Header.Set(pubsub.ContentType, pubsub.ContentTypeJSON)
 		req.Header.Set(pubsub.XAuthenticationKey, *authkey)
 		resp, err := client.Do(req)
-		if resp.Body != nil {
+		if resp != nil && resp.Body != nil {
 			io.Copy(ioutil.Discard, resp.Body)
 			resp.Body.Close()
 		}
 		if err != nil {
 			glog.Warningf("Error making HTTP request: %v", err)
+			continue
 		}
 		if resp.StatusCode != http.StatusCreated {
 			glog.Warningf("Unexpected response status: %d", resp.StatusCode)
