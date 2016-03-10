@@ -4,14 +4,20 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math"
-	"net"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/getlantern/pubsub"
+	"github.com/golang/glog"
 )
 
 const (
@@ -22,7 +28,7 @@ const (
 var (
 	addr        = flag.String("addr", "pubsub.lantern.io:443", "The address to which to connect")
 	authkey     = flag.String("authkey", "", "The authentication key")
-	numclients  = flag.Int("numclients", 15000, "The number of concurrent clients to run")
+	numclients  = flag.Int("numclients", 15000, "The number of concurrent clients that are running")
 	targettps   = flag.Int("targettps", 100000, "The target transactions per second")
 	parallelism = flag.Int("parallel", 100, "The number of parallel clients to run")
 
@@ -41,29 +47,41 @@ func main() {
 	sent := make(chan int)
 	targettpsPerClient := *targettps / *parallelism
 
-	dial := func() (net.Conn, error) {
-		return net.Dial("tcp", *addr)
-	}
-
 	for i := 0; i < *parallelism; i++ {
-		go launchClient(targettpsPerClient, dial, sent)
+		go launchClient(targettpsPerClient, sent)
 	}
 
 	fmt.Fprintf(os.Stderr, "Launched %d clients\n", *parallelism)
 	trackTPS(sent)
 }
 
-func launchClient(targettps int, dial func() (net.Conn, error), sent chan int) {
-	client := pubsub.Connect(&pubsub.ClientConfig{
-		Dial:              dial,
-		AuthenticationKey: *authkey,
-	})
+func launchClient(targettps int, sent chan int) {
+	client := &http.Client{}
 
 	targetDuration := time.Duration(checkInterval * time.Second / time.Duration(targettps))
 	start := time.Now()
 	for j := 0; j < math.MaxInt32; j++ {
-		client.Publish([]byte(fmt.Sprintf("perfclient%d", j%*numclients)), body).Send()
+		b := new(bytes.Buffer)
+		json.NewEncoder(b).Encode(&pubsub.JSONMessage{
+			Topic: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("perfclient%d", j%*numclients))),
+			Body:  base64.StdEncoding.EncodeToString(body),
+		})
+		req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%v/messages", *addr), b)
+		req.Header.Set(pubsub.ContentType, pubsub.ContentTypeJSON)
+		req.Header.Set(pubsub.XAuthenticationKey, *authkey)
+		resp, err := client.Do(req)
+		if resp.Body != nil {
+			io.Copy(ioutil.Discard, resp.Body)
+			resp.Body.Close()
+		}
+		if err != nil {
+			glog.Warningf("Error making HTTP request: %v", err)
+		}
+		if resp.StatusCode != http.StatusCreated {
+			glog.Warningf("Unexpected response status: %d", resp.StatusCode)
+		}
 		sent <- 1
+
 		if j%checkInterval == 0 && j > 0 {
 			delta := time.Now().Sub(start)
 			delay := targetDuration - delta

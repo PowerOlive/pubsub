@@ -22,7 +22,7 @@ const (
 var (
 	addr        = flag.String("addr", "pubsub.lantern.io:14443", "The address to which to connect")
 	authkey     = flag.String("authkey", "", "The authentication key")
-	numclients  = flag.Int("numclients", 15000, "The number of concurrent clients to run")
+	numclients  = flag.Int("numclients", 15000, "The number of concurrent clients that are running")
 	targettps   = flag.Int("targettps", 100000, "The target transactions per second")
 	parallelism = flag.Int("parallel", 100, "The number of parallel clients to run")
 

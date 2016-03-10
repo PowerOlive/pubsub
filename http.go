@@ -26,6 +26,12 @@ type JSONMessage struct {
 
 // ServeHTTP implements the http.Handler interface and supports publishing messages via HTTP.
 func (b *Broker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(resp, "Method %v not allowed\n", req.Method)
+		return
+	}
+
 	contentType := req.Header.Get(ContentType)
 	if contentType != ContentTypeJSON {
 		resp.WriteHeader(http.StatusUnsupportedMediaType)
@@ -79,6 +85,7 @@ func (b *Broker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	b.out <- msg
 
 	resp.WriteHeader(http.StatusCreated)
+	fmt.Fprintln(resp, "Success!")
 }
 
 func badRequest(resp http.ResponseWriter, msg string, args ...interface{}) {
