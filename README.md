@@ -48,6 +48,10 @@ works as follows:
   fast performance. See [here](https://github.com/eishay/jvm-serializers/wiki)
   for some useful comparisons.
 
+### Java Client
+[pubsub-java](https://github.com/getlantern/pubsub-java) is the Java client for
+pubsub.
+
 ### Load Testing
 To simulate a load, you can use the programs in `perfclient` and `loadclient` to
 simulate a large number of clients (analogous to Lantern clients) and a single
