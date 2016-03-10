@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	addr     = flag.String("addr", ":14080", "The address at which to listen for connections")
+	addr     = flag.String("addr", ":1443", "The address at which to listen for connections")
 	httpAddr = flag.String("httpaddr", ":443", "The address at which to listen for HTTP connections")
 	authkey  = flag.String("authkey", "", "The authentication key to use for authenticating publishers")
 )

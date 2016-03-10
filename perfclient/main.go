@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	addr       = flag.String("addr", "pubsub.lantern.io:443", "The address to which to connect")
+	addr       = flag.String("addr", "pubsub.lantern.io:14443", "The address to which to connect")
 	numclients = flag.Int("numclients", 15000, "The number of concurrent clients to run")
 	rampup     = flag.Duration("rampup", 15*time.Second, "How long to take ramping up all clients")
 )
