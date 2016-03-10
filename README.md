@@ -47,3 +47,20 @@ works as follows:
   it is schema-less but still achieves a small serialized size and reasonably
   fast performance. See [here](https://github.com/eishay/jvm-serializers/wiki)
   for some useful comparisons.
+
+### Load Testing
+To simulate a load, you can use the programs in `perfclient` and `loadclient` to
+simulate a large number of clients (analogous to Lantern clients) and a single
+client generating a lot of load (analogous to the config server).
+
+```sh
+ulimit -n 100000 && ./perfclient -numclients 15000 -stderrthreshold WARNING
+```
+
+```sh
+./loadclient -authkey <publisher auth key here> -stderrthreshold WARNING
+```
+
+You can also generate load using the Java class
+`org.getlantern.pubsub.LoadGeneratingClient` to see how the system performs with
+the Java client library.
