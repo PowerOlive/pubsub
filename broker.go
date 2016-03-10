@@ -79,7 +79,7 @@ func NewBroker(cfg *BrokerConfig) *Broker {
 	}
 
 	if cfg.ClientBufferDepth == 0 {
-		cfg.ClientBufferDepth = 10
+		cfg.ClientBufferDepth = 100
 	}
 
 	return &Broker{
@@ -171,7 +171,7 @@ func (c *client) read() {
 		msg := &Message{}
 		err := dec.Decode(msg)
 		if err != nil {
-			glog.Errorf("Unable to read message, disconnecting: %v", err)
+			glog.Infof("Unable to read message, disconnecting: %v", err)
 			c.broker.disconnect <- c
 			return
 		}
@@ -236,7 +236,7 @@ func (c *client) write() {
 			c.resetIdleTimer()
 			err := c.enc.Encode(msg)
 			if err != nil {
-				glog.Errorf("Unable to write message, disconnecting: %v", err)
+				glog.Infof("Unable to write message, disconnecting: %v", err)
 				c.broker.disconnect <- c
 				return
 			}
