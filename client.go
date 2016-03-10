@@ -168,7 +168,8 @@ func (c *Client) doWithConnection(op func() error) {
 		}
 
 		var err error
-		if c.conn == nil || atomic.CompareAndSwapInt32(&c.forceReconnect, 1, 0) {
+		if atomic.CompareAndSwapInt32(&c.forceReconnect, 1, 0) || c.conn == nil {
+			c.close()
 			glog.Info("Dialing new conn")
 			c.conn, err = c.cfg.Dial()
 			if err != nil {
@@ -272,6 +273,7 @@ func (c *Client) resetKeepaliveTimer() {
 
 func (c *Client) close() {
 	if c.conn != nil {
+		glog.Info("Closing connection")
 		c.conn.Close()
 		c.conn = nil
 	}

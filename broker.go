@@ -119,6 +119,7 @@ func (b *Broker) handleMessages() {
 			glog.Info("Unsubscribing")
 			delete(b.clientsFor(unsub.topic), unsub.client.id)
 		case client := <-b.disconnect:
+			glog.Info("Disconnecting client")
 			for _, clients := range b.subscriptions {
 				delete(clients, client.id)
 			}
@@ -179,8 +180,9 @@ func (c *client) read() {
 		// Process Message
 		switch msg.Type {
 		case KeepAlive:
+			glog.Info("Sending back KeepAlive")
 			// Send back a KeepAlive in case there's a downstream idle timeout on read
-			c.broker.out <- &Message{Type: KeepAlive}
+			c.out <- &Message{Type: KeepAlive}
 		case Authenticate:
 			glog.Info("Authenticating")
 			if msg.Body == nil {
