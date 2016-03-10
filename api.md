@@ -7,7 +7,7 @@ pubsub is an API for publishing messages to the pubsub message broker.
 
 ## Group Message
 
-## Messages [messages]
+## Messages [/messages]
 
 ### Publish a message [POST]
 
