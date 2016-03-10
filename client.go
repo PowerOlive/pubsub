@@ -3,6 +3,7 @@ package pubsub
 import (
 	"math"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang/glog"
@@ -44,6 +45,7 @@ type Client struct {
 	keepaliveTimer *time.Timer
 	out            chan *Sendable
 	in             chan *Message
+	forceReconnect int32
 	connect        chan interface{}
 	conn           net.Conn
 	enc            *msgpack.Encoder
@@ -166,7 +168,7 @@ func (c *Client) doWithConnection(op func() error) {
 		}
 
 		var err error
-		if c.conn == nil {
+		if c.conn == nil || atomic.CompareAndSwapInt32(&c.forceReconnect, 1, 0) {
 			glog.Info("Dialing new conn")
 			c.conn, err = c.cfg.Dial()
 			if err != nil {
@@ -179,7 +181,7 @@ func (c *Client) doWithConnection(op func() error) {
 			c.enc = msgpack.NewEncoder(c.conn)
 
 			// Send initial messages
-			err = c.initialMessages()
+			err = c.sendInitialMessages()
 			if err != nil {
 				glog.Warningf("Error sending initial messages: %v", err)
 				c.close()
@@ -202,7 +204,7 @@ func (c *Client) doWithConnection(op func() error) {
 	}
 }
 
-func (c *Client) initialMessages() error {
+func (c *Client) sendInitialMessages() error {
 	glog.Info("Sending initial messages")
 	if c.cfg.AuthenticationKey != "" {
 		err := c.authenticate(c.cfg.AuthenticationKey).sendImmediate()
@@ -228,7 +230,7 @@ func (c *Client) readLoop(dec *msgpack.Decoder) {
 		err := dec.Decode(msg)
 		if err != nil {
 			glog.Warningf("Unable to read, stopping readLoop: %v", err)
-			c.close()
+			atomic.StoreInt32(&c.forceReconnect, 1)
 			c.forceConnect()
 			return
 		}

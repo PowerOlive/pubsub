@@ -9,38 +9,6 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
-// MessageType identifies the type of a Message
-type MessageType int8
-
-const (
-	// Message Types
-
-	// KeepAlive is a MessageType for keeping alive connections
-	KeepAlive = 0
-
-	// Authenticate is a MessageType for authenticating clients
-	Authenticate = 1
-
-	// Subscribe is a MessageType for subscribing to topics
-	Subscribe = 2
-
-	// Unsubscribe is a MessageType for unsubscribing from topics
-	Unsubscribe = 3
-
-	// Publish is a MessageType for publishing a message to a topic
-	Publish = 4
-)
-
-// Message is a message
-type Message struct {
-	// Type of message (serialized as field "t")
-	Type MessageType `msgpack:"t,omitempty"`
-	// Topic of message (serialized as field "o")
-	Topic []byte `msgpack:"o,omitempty"`
-	// Body of message (serialized as field "b")
-	Body []byte `msgpack:"b,omitempty"`
-}
-
 // BrokerConfig contains configuration for a Broker.
 type BrokerConfig struct {
 	// AuthenticationKey: the secret key that clients must specify in order to
@@ -128,7 +96,7 @@ func NewBroker(cfg *BrokerConfig) *Broker {
 // Serve starts serving clients connecting via the given net.Listener.
 func (b *Broker) Serve(l net.Listener) {
 	go b.handleMessages()
-	go b.accept(l)
+	b.accept(l)
 }
 
 func (b *Broker) accept(l net.Listener) {
