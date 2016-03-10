@@ -20,20 +20,20 @@ This publishes a message to a topic. In pubsub, topics and bodies are just byte 
 
   + Headers
 
-          Content-Type: application/json
-          X-Authentication-Key: <authentication key here>
+            Content-Type: application/json
+            X-Authentication-Key: <authentication key here>
 
   + Body
 
-        {
-            Topic: "TXkgVG9waWM=",
-            Body: "SGVyZSBpcyBhIHNhbXBsZSBib2R5"
-        }
+            {
+                Topic: "TXkgVG9waWM=",
+                Body: "SGVyZSBpcyBhIHNhbXBsZSBib2R5"
+            }
 
 + Response 201
 + Response 400
 
-        Message will indicate what specifically was wrong
+            Message will indicate what specifically was wrong
 
 + Response 401
 + Response 405
