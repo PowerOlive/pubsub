@@ -1,3 +1,5 @@
+# pubsub
+
 pubsub is a simplistic system for subscribing to and publishing messages where
 simplicity and low overhead are more important than delivery guarantees.  It
 works as follows:
