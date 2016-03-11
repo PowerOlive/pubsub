@@ -72,6 +72,6 @@ You can also generate load using the Java class
 the Java client library.
 
 At the moment, with 15,000 connected clients and using a parallelism of 100 on
-the `loadclient`, pubsub is able to process around 40-50 thousand messages per
-second which corresponds to about 40 Mbit/s outbound on the wire per
+the `loadclient`, pubsub is able to process around 15 thousand messages per
+second which corresponds to about 60 Mbit/s outbound on the wire per
 `vnstat -l -i eth0`'s `tx` value.

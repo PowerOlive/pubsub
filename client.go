@@ -173,8 +173,8 @@ func (c *Client) doWithConnection(op func() error) {
 			glog.Info("Dialing new conn")
 			c.conn, err = c.cfg.Dial()
 			if err != nil {
+				c.conn = nil
 				glog.Warningf("Unable to dial broker: %v", err)
-				c.close()
 				continue
 			}
 
@@ -274,7 +274,7 @@ func (c *Client) resetKeepaliveTimer() {
 func (c *Client) close() {
 	if c.conn != nil {
 		glog.Info("Closing connection")
-		//c.conn.Close()
+		c.conn.Close()
 		c.conn = nil
 	}
 }
