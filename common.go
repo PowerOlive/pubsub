@@ -43,9 +43,28 @@ var (
 )
 
 func (m *Message) EncodeMsgpack(enc *msgpack.Encoder) error {
+	if m.Type == KeepAlive {
+		// For efficiency, KeepAlive messages include only the type
+		return enc.EncodeUint64(0)
+	}
 	return enc.Encode(int8(m.Type), m.Topic, m.Body)
 }
 
 func (m *Message) DecodeMsgpack(dec *msgpack.Decoder) error {
-	return dec.Decode(&m.Type, &m.Topic, &m.Body)
+	t, err := dec.DecodeUint64()
+	if err != nil {
+		return err
+	}
+	m.Type = MessageType(t)
+	if m.Type == KeepAlive {
+		// KeepAlive messages only contain the type
+		return nil
+	}
+
+	m.Topic, err = dec.DecodeBytes()
+	if err != nil {
+		return err
+	}
+	m.Body, err = dec.DecodeBytes()
+	return err
 }
