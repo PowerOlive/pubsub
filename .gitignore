@@ -2,3 +2,4 @@ broker/broker
 loadclient/loadclient
 perfclient/perfclient
 httpclient/httpclient
+*.pem

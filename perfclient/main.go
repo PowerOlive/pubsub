@@ -7,8 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"math/rand"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/getlantern/pubsub"
@@ -20,6 +22,7 @@ const (
 
 var (
 	addr       = flag.String("addr", "pubsub.lantern.io:14443", "The address to which to connect")
+	localaddrs = flag.String("localaddrs", "", "Optionally specify a comma-delimited list of local addresses to allow more ephemeral ports (useful for high client counts)")
 	numclients = flag.Int("numclients", 15000, "The number of concurrent clients to run")
 	rampup     = flag.Duration("rampup", 15*time.Second, "How long to take ramping up all clients")
 )
@@ -30,8 +33,23 @@ func main() {
 	received := make(chan int)
 	rampupDelay := time.Duration(int64(*rampup) / int64(*numclients))
 
-	dial := func() (net.Conn, error) {
-		return tls.Dial("tcp", *addr, nil)
+	var dial func() (net.Conn, error)
+	if *localaddrs != "" {
+		addrs := strings.Split(*localaddrs, ",")
+		dial = func() (net.Conn, error) {
+			localAddr, err := net.ResolveTCPAddr("tcp", addrs[rand.Intn(len(addrs))]+":0")
+			if err != nil {
+				return nil, err
+			}
+			dialer := &net.Dialer{
+				LocalAddr: localAddr,
+			}
+			return tls.DialWithDialer(dialer, "tcp", *addr, nil)
+		}
+	} else {
+		dial = func() (net.Conn, error) {
+			return tls.Dial("tcp", *addr, nil)
+		}
 	}
 
 	for i := 0; i < *numclients; i++ {
