@@ -3,6 +3,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"math"
@@ -30,7 +31,7 @@ func main() {
 	rampupDelay := time.Duration(int64(*rampup) / int64(*numclients))
 
 	dial := func() (net.Conn, error) {
-		return net.Dial("tcp", *addr)
+		return tls.Dial("tcp", *addr, nil)
 	}
 
 	for i := 0; i < *numclients; i++ {

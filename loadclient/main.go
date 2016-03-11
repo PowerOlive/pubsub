@@ -4,6 +4,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"math"
@@ -42,7 +43,9 @@ func main() {
 	targettpsPerClient := *targettps / *parallelism
 
 	dial := func() (net.Conn, error) {
-		return net.Dial("tcp", *addr)
+		return tls.Dial("tcp", *addr, &tls.Config{
+			ClientSessionCache: tls.NewLRUClientSessionCache(10),
+		})
 	}
 
 	for i := 0; i < *parallelism; i++ {

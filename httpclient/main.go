@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	addr        = flag.String("addr", "pubsub.lantern.io:443", "The address to which to connect")
+	addr        = flag.String("addr", "pubsub.lantern.io", "The address to which to connect")
 	authkey     = flag.String("authkey", "", "The authentication key")
 	numclients  = flag.Int("numclients", 15000, "The number of concurrent clients that are running")
 	targettps   = flag.Int("targettps", 100000, "The target transactions per second")
@@ -66,7 +66,7 @@ func launchClient(targettps int, sent chan int) {
 			Topic: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("perfclient%d", j%*numclients))),
 			Body:  base64.StdEncoding.EncodeToString(body),
 		})
-		req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%v/messages", *addr), b)
+		req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("https://%v/messages", *addr), b)
 		req.Header.Set(pubsub.ContentType, pubsub.ContentTypeJSON)
 		req.Header.Set(pubsub.XAuthenticationKey, *authkey)
 		resp, err := client.Do(req)

@@ -274,7 +274,7 @@ func (c *Client) resetKeepaliveTimer() {
 func (c *Client) close() {
 	if c.conn != nil {
 		glog.Info("Closing connection")
-		c.conn.Close()
+		//c.conn.Close()
 		c.conn = nil
 	}
 }

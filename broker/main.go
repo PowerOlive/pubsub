@@ -3,18 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 
 	"github.com/getlantern/pubsub"
+	"github.com/getlantern/tlsdefaults"
 	"github.com/golang/glog"
 )
 
 var (
-	addr     = flag.String("addr", ":14443", "The address at which to listen for connections")
-	httpAddr = flag.String("httpaddr", ":443", "The address at which to listen for HTTP connections")
-	authkey  = flag.String("authkey", "", "The authentication key to use for authenticating publishers")
+	addr      = flag.String("addr", ":14443", "The address at which to listen for TLS connections")
+	httpsaddr = flag.String("httpsaddr", ":443", "The address at which to listen for HTTPS connections")
+	pkfile    = flag.String("pkfile", "pk.pem", "Path to the private key PEM file")
+	certfile  = flag.String("certfile", "cert.pem", "Path to the certificate PEM file")
+	authkey   = flag.String("authkey", "", "The authentication key to use for authenticating publishers")
 )
 
 func main() {
@@ -26,17 +28,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	l, err := net.Listen("tcp", *addr)
+	l, err := tlsdefaults.Listen(*addr, *pkfile, *certfile)
 	if err != nil {
 		glog.Fatalf("Unable to listen: %v", err)
 	}
-	fmt.Fprintf(os.Stdout, "Listening for connections at %v\n", l.Addr())
+	fmt.Fprintf(os.Stdout, "Listening for TLS connections at %v\n", l.Addr())
 
-	hl, err := net.Listen("tcp", *httpAddr)
+	hl, err := tlsdefaults.Listen(*httpsaddr, *pkfile, *certfile)
 	if err != nil {
-		glog.Fatalf("Unable to listen HTTP: %v", err)
+		glog.Fatalf("Unable to listen HTTPS: %v", err)
 	}
-	fmt.Fprintf(os.Stdout, "Listening for HTTP connections at %v\n", hl.Addr())
+	fmt.Fprintf(os.Stdout, "Listening for HTTPS connections at %v\n", hl.Addr())
 
 	broker := pubsub.NewBroker(&pubsub.BrokerConfig{
 		AuthenticationKey: *authkey,
@@ -45,7 +47,7 @@ func main() {
 	go func() {
 		err := http.Serve(hl, broker)
 		if err != nil {
-			glog.Fatalf("Error serving HTTP: %v", err)
+			glog.Fatalf("Error serving HTTPS: %v", err)
 		}
 	}()
 
