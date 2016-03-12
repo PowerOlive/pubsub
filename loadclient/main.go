@@ -42,10 +42,12 @@ func main() {
 	sent := make(chan int)
 	targettpsPerClient := *targettps / *parallelism
 
+	tlsConfig := &tls.Config{
+		ClientSessionCache: tls.NewLRUClientSessionCache(10),
+	}
+
 	dial := func() (net.Conn, error) {
-		return tls.Dial("tcp", *addr, &tls.Config{
-			ClientSessionCache: tls.NewLRUClientSessionCache(10),
-		})
+		return tls.Dial("tcp", *addr, tlsConfig)
 	}
 
 	for i := 0; i < *parallelism; i++ {
