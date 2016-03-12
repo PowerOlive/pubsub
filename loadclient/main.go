@@ -54,7 +54,7 @@ func main() {
 		go launchClient(targettpsPerClient, dial, sent)
 	}
 
-	fmt.Fprintf(os.Stderr, "Launched %d clients\n", *parallelism)
+	fmt.Fprintf(os.Stderr, "Launched %d workers\n", *parallelism)
 	trackTPS(sent)
 }
 
