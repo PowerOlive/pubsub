@@ -63,9 +63,9 @@ func main() {
 
 func launchClient(i int, dial func() (net.Conn, error), received chan int) {
 	client := pubsub.Connect(&pubsub.ClientConfig{
-		Dial:          dial,
-		InitialTopics: [][]byte{[]byte(fmt.Sprintf("perfclient%d", i))},
+		Dial: dial,
 	})
+	client.Subscribe([]byte(fmt.Sprintf("perfclient%d", i)))
 	for j := 0; j < math.MaxInt32; j++ {
 		client.Read()
 		received <- 1

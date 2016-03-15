@@ -67,7 +67,7 @@ func launchClient(targettps int, dial func() (net.Conn, error), sent chan int) {
 	targetDuration := time.Duration(checkInterval * time.Second / time.Duration(targettps))
 	start := time.Now()
 	for j := 0; j < math.MaxInt32; j++ {
-		client.Publish([]byte(fmt.Sprintf("perfclient%d", j%*numclients)), body).Send()
+		client.Publish([]byte(fmt.Sprintf("perfclient%d", j%*numclients)), body)
 		sent <- 1
 		if j%checkInterval == 0 && j > 0 {
 			delta := time.Now().Sub(start)

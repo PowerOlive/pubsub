@@ -39,9 +39,9 @@ func TestHTTPRoundTrip(t *testing.T) {
 		return net.Dial("tcp", addr)
 	}
 	client := Connect(&ClientConfig{
-		Dial:          dial,
-		InitialTopics: [][]byte{topic},
+		Dial: dial,
 	})
+	client.Subscribe(topic)
 	glog.Info("Connected client")
 
 	goodContentType := ContentTypeJSON

@@ -3,6 +3,7 @@ package pubsub
 import (
 	"math"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -33,22 +34,21 @@ type ClientConfig struct {
 	// AuthenticationKey: if supplied, client will immediately authenticate with
 	// this key.
 	AuthenticationKey string
-
-	// InitialTopics: list of topics to which client will immediately subscribe
-	InitialTopics [][]byte
 }
 
 // Client is a client that is able to communicate with a Broker over the
 // network.
 type Client struct {
-	cfg            *ClientConfig
-	keepaliveTimer *time.Timer
-	out            chan *Sendable
-	in             chan *Message
-	forceReconnect int32
-	connect        chan interface{}
-	conn           net.Conn
-	enc            *msgpack.Encoder
+	cfg                *ClientConfig
+	subscriptions      map[string][]byte
+	subscriptionsMutex sync.RWMutex
+	keepaliveTimer     *time.Timer
+	out                chan *Sendable
+	in                 chan *Message
+	forceReconnect     int32
+	connect            chan interface{}
+	conn               net.Conn
+	enc                *msgpack.Encoder
 }
 
 // Sendable represents a Message that can be published to a specific client.
@@ -74,6 +74,7 @@ func Connect(cfg *ClientConfig) *Client {
 
 	client := &Client{
 		cfg:            cfg,
+		subscriptions:  make(map[string][]byte, 0),
 		keepaliveTimer: time.NewTimer(cfg.KeepalivePeriod),
 		out:            make(chan *Sendable, 0),
 		in:             make(chan *Message, 0),
@@ -101,7 +102,14 @@ func (c *Client) ReadTimeout(timeout time.Duration) (msg *Message, ok bool) {
 }
 
 // Subscribe subscribes this client to the given topic.
-func (c *Client) Subscribe(topic []byte) *Sendable {
+func (c *Client) Subscribe(topic []byte) {
+	c.subscriptionsMutex.Lock()
+	c.subscriptions[string(topic)] = topic
+	c.subscriptionsMutex.Unlock()
+	c.subscribe(topic).Send()
+}
+
+func (c *Client) subscribe(topic []byte) *Sendable {
 	return &Sendable{
 		c:   c,
 		msg: &Message{Type: Subscribe, Topic: topic},
@@ -109,7 +117,14 @@ func (c *Client) Subscribe(topic []byte) *Sendable {
 }
 
 // Unsubscribe unsubscribes this client from the given topic.
-func (c *Client) Unsubscribe(topic []byte) *Sendable {
+func (c *Client) Unsubscribe(topic []byte) {
+	c.subscriptionsMutex.Lock()
+	delete(c.subscriptions, string(topic))
+	c.subscriptionsMutex.Unlock()
+	c.unsubscribe(topic).Send()
+}
+
+func (c *Client) unsubscribe(topic []byte) *Sendable {
 	return &Sendable{
 		c:   c,
 		msg: &Message{Type: Unsubscribe, Topic: topic},
@@ -117,11 +132,12 @@ func (c *Client) Unsubscribe(topic []byte) *Sendable {
 }
 
 // Publish publishes a message with the given body to the given topic.
-func (c *Client) Publish(topic, body []byte) *Sendable {
-	return &Sendable{
+func (c *Client) Publish(topic, body []byte) {
+	s := &Sendable{
 		c:   c,
 		msg: &Message{Type: Publish, Topic: topic, Body: body},
 	}
+	s.Send()
 }
 
 // Send sends the Sendable eventually (queues behind other Sends and ops).
@@ -214,8 +230,15 @@ func (c *Client) sendInitialMessages() error {
 		}
 	}
 
-	for _, topic := range c.cfg.InitialTopics {
-		err := c.Subscribe(topic).sendImmediate()
+	c.subscriptionsMutex.RLock()
+	initialTopics := make([][]byte, 0, len(c.subscriptions))
+	for _, topic := range c.subscriptions {
+		initialTopics = append(initialTopics, topic)
+	}
+	c.subscriptionsMutex.RUnlock()
+
+	for _, topic := range initialTopics {
+		err := c.subscribe(topic).sendImmediate()
 		if err != nil {
 			return err
 		}

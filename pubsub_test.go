@@ -48,18 +48,18 @@ func TestRoundTrip(t *testing.T) {
 		Dial:            dial,
 		BackoffBase:     10 * time.Millisecond,
 		KeepalivePeriod: 25 * time.Millisecond,
-		InitialTopics:   [][]byte{topic},
 	})
+	clientB.Subscribe(topic)
 	glog.Info("Connected clientB")
 
 	// Sleep to hit idle condition (should trigger keepalive)
 	time.Sleep(50 * time.Millisecond)
 
 	// Subscribe to topic
-	clientA.Subscribe(topic).Send()
+	clientA.Subscribe(topic)
 
 	// Publish with authenticated client
-	clientA.Publish(topic, body).Send()
+	clientA.Publish(topic, body)
 
 	msg := clientA.Read()
 	assert.Equal(t, topic, msg.Topic, "clientA received wrong topic")
@@ -69,10 +69,10 @@ func TestRoundTrip(t *testing.T) {
 	assert.Equal(t, topic, msg.Topic, "clientB received wrong topic")
 	assert.Equal(t, body, msg.Body, "clientB received wrong body")
 
-	clientA.Unsubscribe(topic).Send()
+	clientA.Unsubscribe(topic)
 
 	body2 := []byte("Body the sequel")
-	clientA.Publish(topic, body2).Send()
+	clientA.Publish(topic, body2)
 
 	msg, ok := clientA.ReadTimeout(75 * time.Millisecond)
 	assert.False(t, ok, "clientA should not have been able to read again")
