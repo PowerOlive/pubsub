@@ -13,7 +13,7 @@ import (
 
 var (
 	addr      = flag.String("addr", ":14443", "The address at which to listen for TLS connections")
-	httpsaddr = flag.String("httpsaddr", ":443", "The address at which to listen for HTTPS connections")
+	httpsaddr = flag.String("httpsaddr", ":62443", "The address at which to listen for HTTPS connections")
 	pkfile    = flag.String("pkfile", "pk.pem", "Path to the private key PEM file")
 	certfile  = flag.String("certfile", "cert.pem", "Path to the certificate PEM file")
 	authkey   = flag.String("authkey", "", "The authentication key to use for authenticating publishers")
