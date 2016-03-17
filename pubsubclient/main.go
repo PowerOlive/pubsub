@@ -40,6 +40,7 @@ func main() {
 		},
 	})
 	for _, topic := range strings.Split(*topics, ",") {
+		log.Debugf("Subscribing to topic: %v", topic)
 		client.Subscribe([]byte(topic))
 	}
 
