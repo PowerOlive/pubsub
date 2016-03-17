@@ -28,7 +28,7 @@ type ClientConfig struct {
 	// KeepalivePeriod: the client will send a message after being idle for
 	// keepalivePeriod. Set this to the largest value you can that still keeps the
 	// underlying connections from timing out due to idle timeouts on intervening
-	// servers. Defaults to 30s.
+	// servers. Defaults to 20s.
 	KeepalivePeriod time.Duration
 
 	// AuthenticationKey: if supplied, client will immediately authenticate with
@@ -69,7 +69,7 @@ func Connect(cfg *ClientConfig) *Client {
 	}
 
 	if cfg.KeepalivePeriod == 0 {
-		cfg.KeepalivePeriod = 30 * time.Second
+		cfg.KeepalivePeriod = 20 * time.Second
 	}
 
 	client := &Client{
